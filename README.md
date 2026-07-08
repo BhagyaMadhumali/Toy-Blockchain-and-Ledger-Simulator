@@ -900,3 +900,130 @@ Possible enhancements include:
 **Toy Blockchain Simulator**
 
 Developed as a learning project to understand the fundamentals of blockchain technology using Go (Golang).
+
+# Web User Interface (UI)
+
+## Overview
+
+To make the blockchain simulator more user-friendly, a simple web-based interface was developed using Go's built-in `net/http` and `html/template` packages. The UI allows users to perform blockchain operations through a web browser instead of entering CLI commands.
+
+---
+
+## UI Features
+
+- View account balances
+- Transfer money between users
+- View pending transactions
+- Mine pending transactions into a new block
+- Validate the blockchain
+- Simulate blockchain tampering
+- Reset the blockchain
+- View all blocks and transactions
+
+---
+
+## User Workflow
+
+1. Open the web application.
+2. Select the sender and receiver.
+3. Enter the transfer amount.
+4. Click **Add Transaction**.
+5. Click **Mine Block** to confirm the transaction.
+6. View updated account balances.
+7. Click **Validate Blockchain** to verify blockchain integrity.
+8. Click **Tamper Blockchain** to modify a mined transaction and test tampering detection.
+9. Validate the blockchain again to see that tampering has been detected.
+
+---
+
+## UI Architecture
+
+```text
+Browser
+   │
+   ▼
+Go HTTP Server
+(net/http)
+   │
+   ▼
+Blockchain Logic
+   │
+   ├── Transactions
+   ├── Mining
+   ├── Validation
+   ├── Ledger
+   └── JSON Persistence
+```
+
+---
+
+## Running the Web UI
+
+Navigate to the project root and run:
+
+```bash
+go run cmd/web/main.go
+```
+
+After the server starts, open your browser and visit:
+
+```text
+http://localhost:8080
+```
+
+---
+
+## Available Actions
+
+| Button              | Description                                                                   |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Add Transaction     | Adds a transaction to the pending transaction pool                            |
+| Mine Block          | Mines all pending transactions into a new block                               |
+| Validate Blockchain | Checks whether the blockchain is valid                                        |
+| Tamper Blockchain   | Intentionally modifies a mined transaction to demonstrate tampering detection |
+| Reset Blockchain    | Creates a new blockchain with the genesis block                               |
+
+---
+
+## Blockchain Tampering Demonstration
+
+The **Tamper Blockchain** button intentionally changes a mined transaction without recalculating the block hash.
+
+Example:
+
+**Before Tampering**
+
+```text
+Alice → Bob : 20
+Blockchain Status: Valid
+```
+
+**After Tampering**
+
+```text
+Alice → Bob : 999
+Blockchain Status: Invalid / Tampered
+```
+
+This demonstrates that any modification to block data changes the calculated hash, allowing the validation process to detect tampering.
+
+---
+
+## Benefits of the Web UI
+
+- Easier to use than command-line commands
+- Provides a visual representation of blockchain data
+- Displays balances and transactions in real time
+- Demonstrates the blockchain workflow interactively
+- Makes mining, validation, and tampering easier to understand
+
+---
+
+## Technologies Used
+
+- Go (Golang)
+- net/http
+- html/template
+- HTML5
+- CSS3
+- JSON Persistence
