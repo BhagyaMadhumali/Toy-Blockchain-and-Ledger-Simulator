@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"strconv"
-	"toy-blockchain/ledger"
 )
 
 func CalculateHash(block Block) string {

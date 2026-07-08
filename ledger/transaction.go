@@ -1,7 +1,7 @@
 package ledger
 
 type Transaction struct {
-	Sender   string
-	Receiver string
-	Amount   int
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Amount   int    `json:"amount"`
 }

@@ -1,7 +1,7 @@
 package ledger
 
 type Ledger struct {
-	Balances map[string]int
+	Balances map[string]int `json:"balances"`
 }
 
 func NewLedger() *Ledger {
@@ -21,4 +21,8 @@ func (l *Ledger) GetBalance(user string) int {
 func (l *Ledger) UpdateBalance(sender, receiver string, amount int) {
 	l.Balances[sender] -= amount
 	l.Balances[receiver] += amount
+}
+
+func (l *Ledger) ApplyTransaction(tx Transaction) {
+	l.UpdateBalance(tx.Sender, tx.Receiver, tx.Amount)
 }

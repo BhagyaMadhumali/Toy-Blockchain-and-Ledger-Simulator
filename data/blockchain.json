@@ -1,0 +1,35 @@
+{
+  "blocks": [
+    {
+      "index": 0,
+      "timestamp": 1783492975,
+      "transactions": [],
+      "previous_hash": "0000",
+      "nonce": 0,
+      "hash": "81854a1dcfcc30772828bb65eb20d7778e3548b84bfd9c4dea47b0212c72b63b"
+    },
+    {
+      "index": 1,
+      "timestamp": 1783492977,
+      "transactions": [
+        {
+          "sender": "Alice",
+          "receiver": "Bob",
+          "amount": 20
+        }
+      ],
+      "previous_hash": "81854a1dcfcc30772828bb65eb20d7778e3548b84bfd9c4dea47b0212c72b63b",
+      "nonce": 63458,
+      "hash": "0000607b7eb6bd85a53850267ced47ac71e6b90edfc3d91a5e1d4eb35e79fb65"
+    }
+  ],
+  "pending_transactions": [],
+  "difficulty": 4,
+  "ledger": {
+    "balances": {
+      "Alice": 80,
+      "Bob": 70,
+      "Charlie": 75
+    }
+  }
+}
