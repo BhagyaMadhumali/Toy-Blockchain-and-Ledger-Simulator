@@ -21,14 +21,28 @@
       "previous_hash": "b6ef24a9d10e2280c9aba58222b80bfe7fdca4e12dd425dbeb6e7b853e37523a",
       "nonce": 21022,
       "hash": "0000591e5ecdbdb46ee85958b821bf387056bfc7e1bdf520c4ad92373d77aca8"
+    },
+    {
+      "index": 2,
+      "timestamp": 1783654501,
+      "transactions": [
+        {
+          "sender": "Alice",
+          "receiver": "Bob",
+          "amount": 20
+        }
+      ],
+      "previous_hash": "0000591e5ecdbdb46ee85958b821bf387056bfc7e1bdf520c4ad92373d77aca8",
+      "nonce": 11000,
+      "hash": "0000c0d667e20a60cb51218703d3aa6f1d3d9d328d65eed59904acad09e25b6f"
     }
   ],
   "pending_transactions": [],
   "difficulty": 4,
   "ledger": {
     "balances": {
-      "Alice": 100,
-      "Bob": 30,
+      "Alice": 80,
+      "Bob": 50,
       "Charlie": 95
     }
   }

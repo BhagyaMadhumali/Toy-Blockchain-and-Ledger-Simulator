@@ -6,8 +6,8 @@ import (
 )
 
 func TestValidTransaction(t *testing.T) {
-	l := ledger.NewLedger()
-	l.AddAccount("Alice", 100)
+	testLedger := ledger.NewLedger()
+	testLedger.AddAccount("Alice", 100)
 
 	tx := ledger.Transaction{
 		Sender:   "Alice",
@@ -15,14 +15,20 @@ func TestValidTransaction(t *testing.T) {
 		Amount:   20,
 	}
 
-	if err := ledger.ValidateTransaction(l, tx); err != nil {
-		t.Errorf("expected valid transaction, got error: %v", err)
+	if err := ledger.ValidateTransaction(
+		testLedger,
+		tx,
+	); err != nil {
+		t.Errorf(
+			"expected valid transaction, got error: %v",
+			err,
+		)
 	}
 }
 
 func TestNegativeAmountTransaction(t *testing.T) {
-	l := ledger.NewLedger()
-	l.AddAccount("Alice", 100)
+	testLedger := ledger.NewLedger()
+	testLedger.AddAccount("Alice", 100)
 
 	tx := ledger.Transaction{
 		Sender:   "Alice",
@@ -30,14 +36,19 @@ func TestNegativeAmountTransaction(t *testing.T) {
 		Amount:   -10,
 	}
 
-	if err := ledger.ValidateTransaction(l, tx); err == nil {
-		t.Errorf("expected negative amount to be invalid")
+	if err := ledger.ValidateTransaction(
+		testLedger,
+		tx,
+	); err == nil {
+		t.Errorf(
+			"expected negative amount to be invalid",
+		)
 	}
 }
 
 func TestZeroAmountTransaction(t *testing.T) {
-	l := ledger.NewLedger()
-	l.AddAccount("Alice", 100)
+	testLedger := ledger.NewLedger()
+	testLedger.AddAccount("Alice", 100)
 
 	tx := ledger.Transaction{
 		Sender:   "Alice",
@@ -45,14 +56,19 @@ func TestZeroAmountTransaction(t *testing.T) {
 		Amount:   0,
 	}
 
-	if err := ledger.ValidateTransaction(l, tx); err == nil {
-		t.Errorf("expected zero amount to be invalid")
+	if err := ledger.ValidateTransaction(
+		testLedger,
+		tx,
+	); err == nil {
+		t.Errorf(
+			"expected zero amount to be invalid",
+		)
 	}
 }
 
 func TestInsufficientBalanceTransaction(t *testing.T) {
-	l := ledger.NewLedger()
-	l.AddAccount("Alice", 10)
+	testLedger := ledger.NewLedger()
+	testLedger.AddAccount("Alice", 10)
 
 	tx := ledger.Transaction{
 		Sender:   "Alice",
@@ -60,7 +76,12 @@ func TestInsufficientBalanceTransaction(t *testing.T) {
 		Amount:   50,
 	}
 
-	if err := ledger.ValidateTransaction(l, tx); err == nil {
-		t.Errorf("expected insufficient balance to be invalid")
+	if err := ledger.ValidateTransaction(
+		testLedger,
+		tx,
+	); err == nil {
+		t.Errorf(
+			"expected insufficient balance to be invalid",
+		)
 	}
 }

@@ -16,10 +16,23 @@ func TestMiningCreatesValidHash(t *testing.T) {
 
 	difficulty := 2
 
-	blockchain.MineBlock(&block, difficulty)
+	blockchain.MineBlock(
+		&block,
+		difficulty,
+	)
 
-	if !strings.HasPrefix(block.Hash, strings.Repeat("0", difficulty)) {
-		t.Errorf("mined hash does not match difficulty")
+	requiredPrefix := strings.Repeat(
+		"0",
+		difficulty,
+	)
+
+	if !strings.HasPrefix(
+		block.Hash,
+		requiredPrefix,
+	) {
+		t.Errorf(
+			"mined hash does not match difficulty",
+		)
 	}
 }
 
@@ -31,9 +44,14 @@ func TestMiningChangesNonce(t *testing.T) {
 		Nonce:        0,
 	}
 
-	blockchain.MineBlock(&block, 2)
+	blockchain.MineBlock(
+		&block,
+		2,
+	)
 
 	if block.Nonce == 0 {
-		t.Errorf("expected nonce to change during mining")
+		t.Errorf(
+			"expected nonce to change during mining",
+		)
 	}
 }

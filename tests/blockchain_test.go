@@ -10,11 +10,15 @@ func TestGenesisBlockCreated(t *testing.T) {
 	bc := blockchain.NewBlockchain()
 
 	if len(bc.Blocks) != 1 {
-		t.Errorf("expected blockchain to start with one genesis block")
+		t.Errorf(
+			"expected blockchain to start with one genesis block",
+		)
 	}
 
 	if bc.Blocks[0].Index != 0 {
-		t.Errorf("expected genesis block index to be 0")
+		t.Errorf(
+			"expected genesis block index to be 0",
+		)
 	}
 }
 
@@ -28,11 +32,16 @@ func TestAddTransaction(t *testing.T) {
 	}
 
 	if err := bc.AddTransaction(tx); err != nil {
-		t.Errorf("expected valid transaction, got error: %v", err)
+		t.Errorf(
+			"expected valid transaction, got error: %v",
+			err,
+		)
 	}
 
 	if len(bc.PendingTransactions) != 1 {
-		t.Errorf("expected one pending transaction")
+		t.Errorf(
+			"expected one pending transaction",
+		)
 	}
 }
 
@@ -45,10 +54,23 @@ func TestBlockchainValidationAfterMining(t *testing.T) {
 		Amount:   20,
 	}
 
-	_ = bc.AddTransaction(tx)
-	_ = bc.MinePendingTransactions()
+	if err := bc.AddTransaction(tx); err != nil {
+		t.Fatalf(
+			"failed to add transaction: %v",
+			err,
+		)
+	}
+
+	if err := bc.MinePendingTransactions(); err != nil {
+		t.Fatalf(
+			"failed to mine transactions: %v",
+			err,
+		)
+	}
 
 	if !bc.ValidateBlockchain() {
-		t.Errorf("expected blockchain to be valid")
+		t.Errorf(
+			"expected blockchain to be valid",
+		)
 	}
 }
