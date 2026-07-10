@@ -6,44 +6,16 @@ import (
 )
 
 func TestHashConsistency(t *testing.T) {
-	block := blockchain.Block{
-		Index:        1,
-		Timestamp:    1000,
-		PreviousHash: "abc",
-		Nonce:        0,
-	}
-
-	hash1 := blockchain.CalculateHash(block)
-	hash2 := blockchain.CalculateHash(block)
-
-	if hash1 != hash2 {
-		t.Errorf(
-			"expected same block to generate same hash",
-		)
+	block := blockchain.Block{Index: 1, Timestamp: 1000, PreviousHash: "abc", Difficulty: 3}
+	if blockchain.CalculateHash(block) != blockchain.CalculateHash(block) {
+		t.Fatal("same block must produce the same hash")
 	}
 }
 
-func TestDifferentBlocksHaveDifferentHashes(t *testing.T) {
-	block1 := blockchain.Block{
-		Index:        1,
-		Timestamp:    1000,
-		PreviousHash: "abc",
-		Nonce:        0,
-	}
-
-	block2 := blockchain.Block{
-		Index:        2,
-		Timestamp:    1000,
-		PreviousHash: "abc",
-		Nonce:        0,
-	}
-
-	hash1 := blockchain.CalculateHash(block1)
-	hash2 := blockchain.CalculateHash(block2)
-
-	if hash1 == hash2 {
-		t.Errorf(
-			"expected different blocks to generate different hashes",
-		)
+func TestHashSerializationIsUnambiguous(t *testing.T) {
+	first := blockchain.Block{Index: 1, Timestamp: 23, PreviousHash: "abc", Difficulty: 3}
+	second := blockchain.Block{Index: 12, Timestamp: 3, PreviousHash: "abc", Difficulty: 3}
+	if blockchain.CalculateHash(first) == blockchain.CalculateHash(second) {
+		t.Fatal("different blocks produced the same hash")
 	}
 }

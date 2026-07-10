@@ -2,25 +2,34 @@ package blockchain
 
 import (
 	"crypto/sha256"
-	"fmt"
-	"strconv"
+	"encoding/hex"
+	"encoding/json"
 )
 
-// CalculateHash calculates the SHA-256 hash of a block.
+// CalculateHash serializes every consensus field as JSON before hashing.
+// Structured serialization prevents ambiguous field concatenation.
 func CalculateHash(block Block) string {
-	record := strconv.Itoa(block.Index)
-	record += strconv.FormatInt(block.Timestamp, 10)
-
-	for _, tx := range block.Transactions {
-		record += tx.Sender
-		record += tx.Receiver
-		record += strconv.Itoa(tx.Amount)
+	input := struct {
+		Index        int         `json:"index"`
+		Timestamp    int64       `json:"timestamp"`
+		Transactions interface{} `json:"transactions"`
+		PreviousHash string      `json:"previous_hash"`
+		Difficulty   int         `json:"difficulty"`
+		Nonce        uint64      `json:"nonce"`
+	}{
+		Index:        block.Index,
+		Timestamp:    block.Timestamp,
+		Transactions: block.Transactions,
+		PreviousHash: block.PreviousHash,
+		Difficulty:   block.Difficulty,
+		Nonce:        block.Nonce,
 	}
 
-	record += block.PreviousHash
-	record += strconv.Itoa(block.Nonce)
+	encoded, err := json.Marshal(input)
+	if err != nil {
+		panic("block hash serialization failed: " + err.Error())
+	}
 
-	hash := sha256.Sum256([]byte(record))
-
-	return fmt.Sprintf("%x", hash)
+	sum := sha256.Sum256(encoded)
+	return hex.EncodeToString(sum[:])
 }

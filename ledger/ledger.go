@@ -1,46 +1,45 @@
 package ledger
 
-// Ledger stores account names and balances.
+import "fmt"
+
+// Ledger is a derived view of balances rebuilt from blockchain transactions.
 type Ledger struct {
-	Balances map[string]int `json:"balances"`
+	Balances map[string]int `json:"-"`
 }
 
-// NewLedger creates an empty ledger.
 func NewLedger() *Ledger {
-	return &Ledger{
-		Balances: make(map[string]int),
+	return &Ledger{Balances: make(map[string]int)}
+}
+
+func (l *Ledger) GetBalance(account string) int {
+	return l.Balances[account]
+}
+
+func (l *Ledger) Credit(account string, amount int) error {
+	if account == "" {
+		return fmt.Errorf("receiver is required")
 	}
+	if amount <= 0 {
+		return fmt.Errorf("amount must be greater than zero")
+	}
+	l.Balances[account] += amount
+	return nil
 }
 
-// AddAccount creates an account or replaces
-// the balance of an existing account.
-func (l *Ledger) AddAccount(user string, balance int) {
-	l.Balances[user] = balance
+// ApplyTransaction validates and applies a normal account-to-account transfer.
+func (l *Ledger) ApplyTransaction(tx Transaction) error {
+	if err := ValidateTransaction(l, tx); err != nil {
+		return err
+	}
+	l.Balances[tx.Sender] -= tx.Amount
+	l.Balances[tx.Receiver] += tx.Amount
+	return nil
 }
 
-// GetBalance returns an account balance.
-//
-// If the account does not exist, Go returns the
-// zero value for int, which is 0.
-func (l *Ledger) GetBalance(user string) int {
-	return l.Balances[user]
-}
-
-// UpdateBalance moves an amount from sender to receiver.
-func (l *Ledger) UpdateBalance(
-	sender string,
-	receiver string,
-	amount int,
-) {
-	l.Balances[sender] -= amount
-	l.Balances[receiver] += amount
-}
-
-// ApplyTransaction updates balances using one transaction.
-func (l *Ledger) ApplyTransaction(tx Transaction) {
-	l.UpdateBalance(
-		tx.Sender,
-		tx.Receiver,
-		tx.Amount,
-	)
+func (l *Ledger) Clone() *Ledger {
+	clone := NewLedger()
+	for account, balance := range l.Balances {
+		clone.Balances[account] = balance
+	}
+	return clone
 }

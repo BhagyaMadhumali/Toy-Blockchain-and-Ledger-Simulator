@@ -1,560 +1,27 @@
 # Toy Blockchain and Ledger Simulator
 
-A simplified blockchain implementation built from scratch using **Go**. This project is being developed as part of a backend engineering learning exercise to understand the core concepts of blockchain technology and Go programming.
+A command-line blockchain simulator written in Go. The blockchain is the only source of truth: account balances are derived by replaying validated transactions from the fixed genesis block through the latest block.
 
----
+## Features
 
-# Project Status
+- Integer-only transactions
+- Fixed deterministic genesis block
+- Genesis coin allocations recorded as `SYSTEM` transactions
+- Pending-pool double-spend prevention
+- Transaction revalidation before mining
+- SHA-256 hashing using structured JSON serialization
+- Proof-of-work with trusted consensus difficulty
+- Nonce, hash-attempt and elapsed-time reporting
+- Validation of hashes, links, proof-of-work, indexes, timestamps and balances
+- First-offending-block validation errors
+- JSON persistence without saving derived ledger balances
+- Difficulty benchmark command for research experiments
+- Unit tests for hashing, mining, tampering, persistence and transaction rules
 
-**Current Progress:** ✅ Day 1 Completed
-
-The project currently implements the foundation of a blockchain system, including the blockchain structure, genesis block creation, deterministic SHA-256 hashing, and blockchain printing.
-
----
-
-# Features Implemented (Day 1)
-
-- Go project initialization
-- Clean project structure
-- Block data structure
-- Blockchain data structure
-- Genesis block creation
-- SHA-256 hash generation
-- Blockchain printing through the command line
-
----
-
-# Project Structure
+## Project structure
 
 ```text
 toy-blockchain/
-│
-├── cmd/
-│   └── main.go
-│
-├── blockchain/
-│   ├── block.go
-│   ├── blockchain.go
-│   └── hash.go
-│
-├── ledger/
-│   └── transaction.go
-│
-├── storage/
-│
-├── data/
-│
-├── go.mod
-└── README.md
-```
-
----
-
-# Implemented Components
-
-## Block
-
-A block represents one unit of the blockchain.
-
-Current fields:
-
-- Index
-- Timestamp
-- Data
-- Previous Hash
-- Hash
-
----
-
-## Blockchain
-
-The blockchain maintains an ordered collection of blocks.
-
-Currently, it contains only the Genesis Block.
-
----
-
-## Genesis Block
-
-The Genesis Block is the first block in the blockchain.
-
-Properties:
-
-- Block Index = 0
-- Previous Hash = `"0000000000"`
-- Contains the text `"Genesis Block"`
-- Hash generated using SHA-256
-
----
-
-## Hashing
-
-The project uses Go's standard library:
-
-```go
-crypto/sha256
-```
-
-The hash is generated using:
-
-- Block Index
-- Timestamp
-- Data
-- Previous Hash
-
-The generated SHA-256 hash uniquely identifies each block.
-
----
-
-# Current Workflow
-
-```
-Start Program
-      │
-      ▼
-Create Genesis Block
-      │
-      ▼
-Calculate SHA-256 Hash
-      │
-      ▼
-Store Genesis Block in Blockchain
-      │
-      ▼
-Print Blockchain
-```
-
----
-
-# How to Run
-
-### Clone the project
-
-```bash
-git clone <repository-url>
-```
-
-### Navigate to the project
-
-```bash
-cd toy-blockchain
-```
-
-### Run the application
-
-```bash
-go run cmd/main.go
-```
-
----
-
-# Example Output
-
-```text
----------------
-Index: 0
-Timestamp: 1783059283
-Data: Genesis Block
-Previous Hash: 0000000000
-Hash: 2853e4167e9bed843dff7500cfe5025003158af4ae5612ce943cb6a30493e01d
-```
-
----
-
-# Concepts Learned
-
-During Day 1, the following blockchain concepts were implemented and understood:
-
-- Blockchain architecture
-- Genesis Block
-- Block structure
-- SHA-256 hashing
-- Deterministic hashing
-- Blockchain initialization
-- Go packages and project organization
-
----
-
-# Technologies Used
-
-- Go 1.26.4
-- Go Standard Library
-  - `crypto/sha256`
-  - `time`
-  - `fmt`
-  - `strconv`
-
----
-
-# Next Steps (Day 2)
-
-The following features will be implemented next:
-
-- Transaction model
-- Pending transaction pool
-- Ledger (account balances)
-- Transaction validation
-- Proof of Work (Mining)
-- Mining difficulty
-- Adding new blocks to the blockchain
-
----
-
-# Learning Objective
-
-This project is being developed incrementally to understand blockchain concepts from first principles while improving Go programming skills. Each feature is implemented one step at a time to ensure a clear understanding of the underlying design and logic before moving on to more advanced blockchain functionality.
-
-# Toy Blockchain - Day 2
-
-## Overview
-
-Day 2 extends the basic blockchain created on Day 1 by introducing a transaction system, account ledger, transaction validation, pending transaction pool, and Proof of Work (PoW) mining. The blockchain can now process transactions between users, mine new blocks, and update account balances.
-
----
-
-## Features Implemented
-
-- Transaction system
-- Account ledger with balances
-- Transaction validation
-- Pending transaction pool
-- Proof of Work (PoW)
-- Nonce-based mining
-- Difficulty-based hash generation
-- Automatic ledger updates after mining
-- Blockchain growth with newly mined blocks
-
----
-
-## Project Structure
-
-```
-toy-blockchain/
-│
-├── cmd/
-│   └── main.go
-│
-├── blockchain/
-│   ├── block.go
-│   ├── blockchain.go
-│   ├── hash.go
-│   ├── mining.go
-│   └── pow.go
-│
-├── ledger/
-│   ├── ledger.go
-│   ├── transaction.go
-│   └── validation.go
-│
-├── go.mod
-└── README.md
-```
-
----
-
-## Components
-
-### Transaction (`ledger/transaction.go`)
-
-Defines the structure of a transaction.
-
-```go
-type Transaction struct {
-    Sender   string
-    Receiver string
-    Amount   int
-}
-```
-
-Each transaction contains:
-
-- Sender
-- Receiver
-- Amount
-
----
-
-### Block (`blockchain/block.go`)
-
-Each block stores:
-
-- Block Index
-- Timestamp
-- Transactions
-- Previous Block Hash
-- Nonce
-- Current Block Hash
-
----
-
-### Hashing (`blockchain/hash.go`)
-
-Each block's hash is generated using SHA-256.
-
-The hash is calculated from:
-
-- Block Index
-- Timestamp
-- Transactions
-- Previous Hash
-- Nonce
-
-Any modification to block data generates a completely different hash.
-
----
-
-### Ledger (`ledger/ledger.go`)
-
-The ledger maintains account balances.
-
-Functions:
-
-- Create new ledger
-- Add accounts
-- Retrieve balances
-- Update balances after successful mining
-
-Example:
-
-```
-Alice : 100
-Bob   : 50
-```
-
----
-
-### Transaction Validation (`ledger/validation.go`)
-
-Transactions are validated before being accepted.
-
-Validation checks:
-
-- Amount must be greater than zero
-- Sender must have sufficient balance
-
-Returns an error if validation fails.
-
----
-
-### Blockchain (`blockchain/blockchain.go`)
-
-The blockchain stores:
-
-- All mined blocks
-- Pending transactions
-- Mining difficulty
-- Ledger
-
-Responsibilities:
-
-- Create Genesis Block
-- Add transactions
-- Store pending transactions
-- Print the blockchain
-
----
-
-### Proof of Work (`blockchain/pow.go`)
-
-Implements the mining difficulty.
-
-A valid block hash must begin with a predefined number of leading zeros.
-
-Example (Difficulty = 4):
-
-```
-0000ab3d8d92...
-```
-
-If the generated hash does not satisfy the difficulty requirement, the miner increases the nonce and tries again.
-
----
-
-### Mining (`blockchain/mining.go`)
-
-Mining performs the following steps:
-
-1. Collect pending transactions.
-2. Create a new block.
-3. Generate hashes repeatedly.
-4. Increment the nonce until a valid hash is found.
-5. Store the mined block.
-6. Update account balances.
-7. Clear pending transactions.
-
----
-
-## Program Flow
-
-```
-Start Program
-      │
-      ▼
-Create Blockchain
-      │
-      ▼
-Create Genesis Block
-      │
-      ▼
-Initialize Ledger
-      │
-      ▼
-Create User Accounts
-      │
-      ▼
-Create Transactions
-      │
-      ▼
-Add to Pending Pool
-      │
-      ▼
-Mine Pending Transactions
-      │
-      ▼
-Proof of Work
-      │
-      ▼
-Generate Valid Hash
-      │
-      ▼
-Update Ledger
-      │
-      ▼
-Append Block to Blockchain
-      │
-      ▼
-Print Blockchain
-      │
-      ▼
-Display Final Balances
-```
-
----
-
-## Expected Output
-
-```
-Initial Balances:
-map[Alice:100 Bob:50]
-
----------------
-Index: 0
-Time: ...
-Prev: 0000
-Nonce: 0
-Hash: ...
-
----------------
-Index: 1
-Time: ...
-Prev: ...
-Nonce: 48291
-Hash: 0000....
-
-   Alice -> Bob 20
-   Bob -> Alice 10
-
-Final Balances:
-map[Alice:90 Bob:60]
-```
-
-(The nonce and hashes will vary on each run.)
-
----
-
-## Learning Outcomes
-
-By completing Day 2, you learned how to:
-
-- Design a transaction model
-- Maintain account balances using a ledger
-- Validate transactions
-- Implement a pending transaction pool
-- Understand SHA-256 hashing
-- Implement Proof of Work
-- Mine new blocks using a nonce
-- Link blocks using hashes
-- Update the blockchain after mining
-
----
-
-## How to Run
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-```
-
-### 2. Navigate to the project
-
-```bash
-cd toy-blockchain
-```
-
-### 3. Run the application
-
-```bash
-go run ./cmd
-```
-
----
-
-## Day 2 Summary
-
-Day 2 transforms the blockchain from a static chain of blocks into a functional blockchain capable of handling transactions. The implementation introduces account management through a ledger, validates transactions, mines blocks using the Proof of Work consensus mechanism, updates balances after successful mining, and appends new blocks to the chain, providing a strong foundation for future enhancements such as digital signatures, peer-to-peer networking, wallets, and consensus algorithms.
-
-# Toy Blockchain Simulator (Day 3)
-
-## Project Overview
-
-The **Toy Blockchain Simulator** is a Go-based application developed to demonstrate the core concepts of blockchain technology. It simulates how transactions are validated, grouped into blocks, mined using the Proof of Work algorithm, and securely linked together to form a blockchain.
-
-Day 3 extends the project by adding blockchain validation, tampering detection, a command-line interface (CLI), JSON persistence, and unit testing.
-
----
-
-# Features
-
-### Day 1 Features
-
-- Blockchain data structure
-- Genesis block creation
-- SHA-256 hashing
-- Block structure
-- Blockchain printing
-
-### Day 2 Features
-
-- Transaction model
-- Pending transaction pool
-- Ledger for account balances
-- Transaction validation
-- Proof of Work (PoW) mining
-- Mining difficulty
-- Block creation from transactions
-
-### Day 3 Features
-
-- Blockchain validation
-- Tampering detection
-- Command Line Interface (CLI)
-- Save blockchain to JSON
-- Load blockchain from JSON
-- Automatic blockchain persistence
-- Unit testing
-- Project documentation
-
----
-
-# Project Structure
-
-```text
-toy-blockchain/
-│
-├── cmd/
-│   └── main.go
-│
 ├── blockchain/
 │   ├── block.go
 │   ├── blockchain.go
@@ -563,467 +30,103 @@ toy-blockchain/
 │   ├── persistence.go
 │   ├── pow.go
 │   └── validation.go
-│
+├── cmd/
+│   └── main.go
 ├── ledger/
 │   ├── ledger.go
 │   ├── transaction.go
 │   └── validation.go
-│
 ├── tests/
-│   ├── blockchain_test.go
-│   ├── hash_test.go
-│   ├── mining_test.go
-│   ├── tamper_test.go
-│   └── transaction_test.go
-│
-├── data/
-│   └── blockchain.json
-│
+├── research-report.md
+├── .gitattributes
+├── .gitignore
 ├── go.mod
 └── README.md
 ```
 
----
+## Source-of-truth design
 
-# Technologies Used
+Initial funds are created in the deterministic genesis block:
 
-- Go (Golang)
-- SHA-256 Hashing
-- JSON
-- Standard Go Libraries
+- Alice: 100
+- Bob: 50
+- Charlie: 75
 
----
+They are represented as transactions from the reserved `SYSTEM` account. The ledger is marked `json:"-"` and is never stored in `data/blockchain.json`. On every load, the application validates and replays the chain to rebuild balances. Editing or injecting a separate balance map therefore cannot change account balances.
 
-# Blockchain Workflow
+## Hashing scheme
 
-```
-Start Program
-      │
-      ▼
-Load blockchain.json
-      │
-      ▼
-If file not found
-Create Genesis Block
-      │
-      ▼
-Wait for CLI Command
-      │
- ┌──────────────┬───────────────┬─────────────┐
- │              │               │             │
- ▼              ▼               ▼             ▼
-Add          Mine           Validate      Print
- │              │               │             │
- ▼              ▼               ▼             ▼
-Pending     Proof of Work    Check Hashes  Display
-Pool         Mining          Previous Hash Blockchain
- │              │               │
- ▼              ▼               ▼
-Ledger      Save JSON      Blockchain Valid
-Update
-```
+The hash includes these fields in this order through JSON serialization:
 
----
+1. Index
+2. Timestamp
+3. Transactions
+4. Previous hash
+5. Difficulty
+6. Nonce
 
-# Block Structure
+Structured serialization avoids collisions caused by direct string concatenation, such as index `1` with timestamp `23` and index `12` with timestamp `3` both becoming `"123"`.
 
-Each block contains:
+## Validation rules
 
-- Block Index
-- Timestamp
-- Transactions
-- Previous Hash
-- Current Hash
-- Nonce
+Validation stops at and reports the first offending block. It checks:
 
----
+- The genesis block exactly matches fixed trusted constants
+- Block indexes are sequential
+- Timestamps never move backward
+- Stored hashes match recalculated hashes
+- Previous-hash links are correct
+- Every block uses the trusted difficulty
+- Every hash satisfies proof-of-work
+- `SYSTEM` issuance occurs only in the genesis block
+- Transaction fields and amounts are valid
+- Replay never creates a negative balance
 
-# Transaction Flow
+Pending transactions are also replayed sequentially when loading and immediately before mining.
 
-1. User creates a transaction.
-2. Transaction is validated.
-3. Valid transactions are stored in the pending transaction pool.
-4. Mining collects pending transactions into a new block.
-5. Proof of Work generates a valid hash.
-6. The mined block is added to the blockchain.
-7. Ledger balances are updated.
-8. Blockchain is saved as a JSON file.
+## Commands
 
----
-
-# Proof of Work
-
-Mining repeatedly changes the **Nonce** until the generated SHA-256 hash satisfies the required mining difficulty.
-
-Example:
-
-```
-Difficulty = 2
-
-Invalid:
-3af129...
-
-Invalid:
-91ab23...
-
-Valid:
-00fd823ab...
-```
-
----
-
-# Blockchain Validation
-
-The validation process checks:
-
-- Every block hash is correct.
-- Previous hash links are valid.
-- Proof of Work requirement is satisfied.
-- The blockchain has not been modified after mining.
-
-If all checks pass, the blockchain is considered valid.
-
----
-
-# Tampering Detection
-
-The simulator can detect blockchain tampering.
-
-Examples of tampering:
-
-- Changing transaction amounts
-- Editing sender or receiver
-- Modifying previous hash
-- Editing mined block data
-
-If any block is modified after mining, validation fails because the recalculated hash no longer matches the stored hash.
-
----
-
-# JSON Persistence
-
-The blockchain can be stored in a JSON file.
-
-Functions:
-
-- SaveBlockchain()
-- LoadBlockchain()
-
-Benefits:
-
-- Data remains available after the program exits.
-- Blockchain automatically reloads when the application starts.
-- If no blockchain exists, a new genesis block is created.
-
-Saved file:
-
-```
-data/blockchain.json
-```
-
----
-
-# Command Line Interface (CLI)
-
-## Add Transaction
+Run commands from the project root.
 
 ```bash
-go run cmd/main.go add Alice Bob 20
+go run ./cmd help
+go run ./cmd balance
+go run ./cmd add Alice Bob 20
+go run ./cmd pending
+go run ./cmd mine
+go run ./cmd print
+go run ./cmd validate
+go run ./cmd benchmark --min 1 --max 5 --runs 3
+go run ./cmd reset
 ```
 
-## Mine Block
+`add` and `mine` automatically save state. Manual `save` and `load` commands are intentionally omitted because loading happens at startup and state-changing commands save automatically.
 
-```bash
-go run cmd/main.go mine
-```
+## Example mining output
 
-## Print Blockchain
-
-```bash
-go run cmd/main.go print
-```
-
-## Validate Blockchain
-
-```bash
-go run cmd/main.go validate
-```
-
-## Show Account Balances
-
-```bash
-go run cmd/main.go balance
-```
-
-## Save Blockchain
-
-```bash
-go run cmd/main.go save
-```
-
-## Load Blockchain
-
-```bash
-go run cmd/main.go load
-```
-
-## Help
-
-```bash
-go run cmd/main.go help
-```
-
----
-
-# Unit Testing
-
-The project includes automated tests for the main blockchain components.
-
-## Hash Tests
-
-- Hash generation
-- Hash consistency
-- Different blocks generate different hashes
-
-## Mining Tests
-
-- Proof of Work
-- Difficulty verification
-- Nonce increment
-- Valid mined hash
-
-## Blockchain Tests
-
-- Genesis block creation
-- Transaction addition
-- Mining
-- Blockchain validation
-
-## Tampering Tests
-
-- Modify transaction amount
-- Modify previous hash
-- Detect blockchain tampering
-
-## Transaction Tests
-
-- Valid transactions
-- Negative amounts
-- Zero amounts
-- Insufficient balance
-
-Run all tests:
-
-```bash
-go test ./...
-```
-
----
-
-# Sample Execution
-
-```
-> go run cmd/main.go add Alice Bob 20
-
-Transaction added to pending pool.
-
-> go run cmd/main.go mine
-
-Mining block...
+```text
 Block mined successfully.
-
-> go run cmd/main.go print
-
-Block 0
-Hash: ...
-
-Block 1
-Alice -> Bob : 20
-
-> go run cmd/main.go balance
-
-Alice : 80
-Bob : 70
-Charlie : 75
-
-> go run cmd/main.go validate
-
-Blockchain is valid.
-
-> go run cmd/main.go save
-
-Blockchain saved successfully.
+Difficulty: 3
+Nonce: 4321
+Hashes attempted: 4322
+Elapsed time: 8.42ms
+Hash: 000...
 ```
 
----
+Actual results vary because proof-of-work is probabilistic.
 
-# Learning Outcomes
-
-After completing this project, the following concepts were implemented and understood:
-
-- Blockchain architecture
-- Genesis block creation
-- SHA-256 hashing
-- Transactions and ledgers
-- Pending transaction pools
-- Proof of Work mining
-- Mining difficulty
-- Blockchain validation
-- Tampering detection
-- JSON data persistence
-- Command Line Interface (CLI)
-- Unit testing in Go
-- Modular software design
-- File handling in Go
-
----
-
-# Future Improvements
-
-Possible enhancements include:
-
-- Mining rewards
-- Digital signatures
-- Wallet generation
-- Peer-to-peer networking
-- REST API
-- Web dashboard
-- Merkle Trees
-- Consensus algorithms
-- Multi-node blockchain simulation
-- Docker deployment
-
----
-
-# Author
-
-**Toy Blockchain Simulator**
-
-Developed as a learning project to understand the fundamentals of blockchain technology using Go (Golang).
-
-# Web User Interface (UI)
-
-## Overview
-
-To make the blockchain simulator more user-friendly, a simple web-based interface was developed using Go's built-in `net/http` and `html/template` packages. The UI allows users to perform blockchain operations through a web browser instead of entering CLI commands.
-
----
-
-## UI Features
-
-- View account balances
-- Transfer money between users
-- View pending transactions
-- Mine pending transactions into a new block
-- Validate the blockchain
-- Simulate blockchain tampering
-- Reset the blockchain
-- View all blocks and transactions
-
----
-
-## User Workflow
-
-1. Open the web application.
-2. Select the sender and receiver.
-3. Enter the transfer amount.
-4. Click **Add Transaction**.
-5. Click **Mine Block** to confirm the transaction.
-6. View updated account balances.
-7. Click **Validate Blockchain** to verify blockchain integrity.
-8. Click **Tamper Blockchain** to modify a mined transaction and test tampering detection.
-9. Validate the blockchain again to see that tampering has been detected.
-
----
-
-## UI Architecture
-
-```text
-Browser
-   │
-   ▼
-Go HTTP Server
-(net/http)
-   │
-   ▼
-Blockchain Logic
-   │
-   ├── Transactions
-   ├── Mining
-   ├── Validation
-   ├── Ledger
-   └── JSON Persistence
-```
-
----
-
-## Running the Web UI
-
-Navigate to the project root and run:
+## Running tests and checks
 
 ```bash
-go run cmd/web/main.go
+gofmt -w .
+go test ./...
+go vet ./...
 ```
 
-After the server starts, open your browser and visit:
+## Runtime data
 
-```text
-http://localhost:8080
-```
+`data/blockchain.json` is generated during use and excluded from Git. Delete it manually or run `go run ./cmd reset` to start again from the fixed genesis block.
 
----
+## Research report
 
-## Available Actions
-
-| Button              | Description                                                                   |
-| ------------------- | ----------------------------------------------------------------------------- |
-| Add Transaction     | Adds a transaction to the pending transaction pool                            |
-| Mine Block          | Mines all pending transactions into a new block                               |
-| Validate Blockchain | Checks whether the blockchain is valid                                        |
-| Tamper Blockchain   | Intentionally modifies a mined transaction to demonstrate tampering detection |
-| Reset Blockchain    | Creates a new blockchain with the genesis block                               |
-
----
-
-## Blockchain Tampering Demonstration
-
-The **Tamper Blockchain** button intentionally changes a mined transaction without recalculating the block hash.
-
-Example:
-
-**Before Tampering**
-
-```text
-Alice → Bob : 20
-Blockchain Status: Valid
-```
-
-**After Tampering**
-
-```text
-Alice → Bob : 999
-Blockchain Status: Invalid / Tampered
-```
-
-This demonstrates that any modification to block data changes the calculated hash, allowing the validation process to detect tampering.
-
----
-
-## Benefits of the Web UI
-
-- Easier to use than command-line commands
-- Provides a visual representation of blockchain data
-- Displays balances and transactions in real time
-- Demonstrates the blockchain workflow interactively
-- Makes mining, validation, and tampering easier to understand
-
----
-
-## Technologies Used
-
-- Go (Golang)
-- net/http
-- html/template
-- HTML5
-- CSS3
-- JSON Persistence
+See [`research-report.md`](research-report.md). Run the benchmark command and replace the marked example table cells with measurements from the current machine before final submission.

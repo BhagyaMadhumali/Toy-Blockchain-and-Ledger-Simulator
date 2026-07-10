@@ -1,73 +1,36 @@
 package blockchain
 
-// Mining logic is implemented as Blockchain.MinePendingTransactions
-// in blockchain.go.
-//
-// This file is kept to match the Day 2 and Day 3 project structure.package blockchain
-
 import (
 	"fmt"
-	"time"
 	"toy-blockchain/ledger"
 )
 
-// MinePendingTransactions places all pending transactions
-// into one new block and mines that block.
-func (bc *Blockchain) MinePendingTransactions() error {
-	// Mining cannot happen without transactions.
+// MinePendingTransactions re-validates every pending transaction against a
+// freshly replayed ledger before any block is mined or balance is changed.
+func (bc *Blockchain) MinePendingTransactions() (MiningResult, error) {
 	if len(bc.PendingTransactions) == 0 {
-		return fmt.Errorf(
-			"no pending transactions to mine; add a transaction first",
-		)
+		return MiningResult{}, fmt.Errorf("no pending transactions to mine")
+	}
+	if err := bc.RebuildLedger(); err != nil {
+		return MiningResult{}, fmt.Errorf("cannot mine invalid blockchain: %w", err)
 	}
 
-	// Get the last block from the chain.
-	previousBlock := bc.Blocks[len(bc.Blocks)-1]
-
-	// Create a separate copy of pending transactions.
-	transactions := append(
-		[]ledger.Transaction(nil),
-		bc.PendingTransactions...,
-	)
-
-	// Create the new block.
-	newBlock := Block{
-		Index:        len(bc.Blocks),
-		Timestamp:    time.Now().Unix(),
-		Transactions: transactions,
-		PreviousHash: previousBlock.Hash,
-		Nonce:        0,
+	temporary := bc.Ledger.Clone()
+	transactions := append([]ledger.Transaction(nil), bc.PendingTransactions...)
+	for i, tx := range transactions {
+		if err := temporary.ApplyTransaction(tx); err != nil {
+			return MiningResult{}, fmt.Errorf("pending transaction %d is invalid: %w", i, err)
+		}
 	}
 
-	// Perform Proof of Work.
-	attempts := MineBlock(
-		&newBlock,
-		bc.Difficulty,
-	)
-
-	// Update balances only after successful mining.
-	for _, tx := range newBlock.Transactions {
-		bc.Ledger.ApplyTransaction(tx)
+	newBlock := newCandidateBlock(bc.Blocks[len(bc.Blocks)-1], transactions)
+	result, err := MineBlock(&newBlock, DefaultDifficulty)
+	if err != nil {
+		return MiningResult{}, err
 	}
 
-	// Add the mined block to the blockchain.
-	bc.Blocks = append(
-		bc.Blocks,
-		newBlock,
-	)
-
-	// Clear the pending transaction pool.
-	bc.PendingTransactions = make(
-		[]ledger.Transaction,
-		0,
-	)
-
-	fmt.Printf(
-		"Mining complete: nonce=%d, attempts=%d, hash=%s\n",
-		newBlock.Nonce,
-		attempts,
-		newBlock.Hash,
-	)
-
-	return nil
+	bc.Blocks = append(bc.Blocks, newBlock)
+	bc.PendingTransactions = []ledger.Transaction{}
+	bc.Ledger = temporary
+	return result, nil
 }

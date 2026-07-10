@@ -2,173 +2,137 @@ package blockchain
 
 import (
 	"fmt"
+	"sort"
 	"time"
 	"toy-blockchain/ledger"
 )
 
-// DefaultDifficulty controls how many zeroes a mined hash must start with.
-const DefaultDifficulty = 3
+const (
+	DefaultDifficulty   = 3
+	GenesisTimestamp    = int64(1704067200) // 2024-01-01 00:00:00 UTC
+	GenesisPreviousHash = "0"
+)
 
-// Blockchain stores the blocks, pending transactions,
-// mining difficulty, and account ledger.
+var genesisTransactions = []ledger.Transaction{
+	{Sender: ledger.SystemAccount, Receiver: "Alice", Amount: 100},
+	{Sender: ledger.SystemAccount, Receiver: "Bob", Amount: 50},
+	{Sender: ledger.SystemAccount, Receiver: "Charlie", Amount: 75},
+}
+
+// Blockchain persists only blocks and pending transactions.
+// Ledger is always rebuilt from the chain and is never trusted from JSON.
 type Blockchain struct {
 	Blocks              []Block              `json:"blocks"`
 	PendingTransactions []ledger.Transaction `json:"pending_transactions"`
-	Difficulty          int                  `json:"difficulty"`
-	Ledger              *ledger.Ledger       `json:"ledger"`
+	Ledger              *ledger.Ledger       `json:"-"`
 }
 
-// NewBlockchain creates a new blockchain.
 func NewBlockchain() *Blockchain {
 	bc := &Blockchain{
-		Blocks:              make([]Block, 0),
-		PendingTransactions: make([]ledger.Transaction, 0),
-		Difficulty:          DefaultDifficulty,
+		Blocks:              []Block{NewGenesisBlock()},
+		PendingTransactions: []ledger.Transaction{},
 		Ledger:              ledger.NewLedger(),
 	}
-
-	bc.InitializeAccounts()
-
-	genesisBlock := NewGenesisBlock()
-	bc.Blocks = append(bc.Blocks, genesisBlock)
-
+	if err := bc.RebuildLedger(); err != nil {
+		panic(err)
+	}
 	return bc
 }
 
-// NewGenesisBlock creates the first block in the blockchain.
 func NewGenesisBlock() Block {
-	genesis := Block{
+	block := Block{
 		Index:        0,
-		Timestamp:    time.Now().Unix(),
-		Transactions: make([]ledger.Transaction, 0),
-		PreviousHash: "0000",
-		Nonce:        0,
+		Timestamp:    GenesisTimestamp,
+		Transactions: append([]ledger.Transaction(nil), genesisTransactions...),
+		PreviousHash: GenesisPreviousHash,
+		Difficulty:   DefaultDifficulty,
+	}
+	if _, err := MineBlock(&block, DefaultDifficulty); err != nil {
+		panic(err)
+	}
+	return block
+}
+
+func (bc *Blockchain) AddTransaction(tx ledger.Transaction) error {
+	if err := bc.RebuildLedger(); err != nil {
+		return fmt.Errorf("cannot add transaction to invalid chain: %w", err)
 	}
 
-	genesis.Hash = CalculateHash(genesis)
-
-	return genesis
-}
-
-// InitializeAccounts creates sample blockchain accounts.
-func (bc *Blockchain) InitializeAccounts() {
-	bc.Ledger.AddAccount("Alice", 100)
-	bc.Ledger.AddAccount("Bob", 50)
-	bc.Ledger.AddAccount("Charlie", 75)
-}
-
-// AddTransaction validates and adds a transaction
-// to the pending transaction pool.
-func (bc *Blockchain) AddTransaction(tx ledger.Transaction) error {
-	availableBalance := bc.availableBalance(tx.Sender)
-
-	if err := ledger.ValidateTransactionWithBalance(
-		tx,
-		availableBalance,
-	); err != nil {
+	temporary := bc.Ledger.Clone()
+	for i, pending := range bc.PendingTransactions {
+		if err := temporary.ApplyTransaction(pending); err != nil {
+			return fmt.Errorf("existing pending transaction %d is invalid: %w", i, err)
+		}
+	}
+	if err := temporary.ApplyTransaction(tx); err != nil {
 		return err
 	}
 
-	bc.PendingTransactions = append(
-		bc.PendingTransactions,
-		tx,
-	)
-
+	bc.PendingTransactions = append(bc.PendingTransactions, tx)
 	return nil
 }
 
-// availableBalance calculates the amount a sender can still spend.
-//
-// It subtracts transactions that are already waiting to be mined.
-// This prevents a sender from adding several pending transactions
-// that together exceed the account balance.
-func (bc *Blockchain) availableBalance(sender string) int {
-	balance := bc.Ledger.GetBalance(sender)
-
-	for _, tx := range bc.PendingTransactions {
-		if tx.Sender == sender {
-			balance -= tx.Amount
-		}
+func (bc *Blockchain) RebuildLedger() error {
+	rebuilt, err := ReplayBlocks(bc.Blocks)
+	if err != nil {
+		return err
 	}
-
-	return balance
+	bc.Ledger = rebuilt
+	return nil
 }
 
-// PrintChain prints all blocks and transactions.
 func (bc *Blockchain) PrintChain() {
 	for _, block := range bc.Blocks {
 		fmt.Println("--------------------------------")
 		fmt.Println("Index:", block.Index)
 		fmt.Println("Timestamp:", block.Timestamp)
 		fmt.Println("Previous Hash:", block.PreviousHash)
+		fmt.Println("Difficulty:", block.Difficulty)
 		fmt.Println("Nonce:", block.Nonce)
 		fmt.Println("Hash:", block.Hash)
 		fmt.Println("Transactions:")
-
-		if len(block.Transactions) == 0 {
-			fmt.Println("  No transactions")
-		}
-
 		for _, tx := range block.Transactions {
-			fmt.Printf(
-				"  %s -> %s : %d\n",
-				tx.Sender,
-				tx.Receiver,
-				tx.Amount,
-			)
+			fmt.Printf("  %s -> %s : %d\n", tx.Sender, tx.Receiver, tx.Amount)
 		}
 	}
 }
 
-// PrintPendingTransactions displays transactions
-// that have not yet been mined.
 func (bc *Blockchain) PrintPendingTransactions() {
 	if len(bc.PendingTransactions) == 0 {
 		fmt.Println("No pending transactions.")
 		return
 	}
-
-	fmt.Println("Pending Transactions:")
-
-	for index, tx := range bc.PendingTransactions {
-		fmt.Printf(
-			"%d. %s -> %s : %d\n",
-			index+1,
-			tx.Sender,
-			tx.Receiver,
-			tx.Amount,
-		)
+	for i, tx := range bc.PendingTransactions {
+		fmt.Printf("%d. %s -> %s : %d\n", i+1, tx.Sender, tx.Receiver, tx.Amount)
 	}
 }
 
-// PrintBalances displays every account balance.
-func (bc *Blockchain) PrintBalances() {
+func (bc *Blockchain) PrintBalances() error {
+	if err := bc.RebuildLedger(); err != nil {
+		return err
+	}
+	accounts := make([]string, 0, len(bc.Ledger.Balances))
+	for account := range bc.Ledger.Balances {
+		accounts = append(accounts, account)
+	}
+	sort.Strings(accounts)
 	fmt.Println("Account Balances:")
-
-	for user, balance := range bc.Ledger.Balances {
-		fmt.Printf("%s: %d\n", user, balance)
+	for _, account := range accounts {
+		fmt.Printf("%s: %d\n", account, bc.Ledger.GetBalance(account))
 	}
+	return nil
 }
 
-// RebuildLedger reconstructs account balances
-// using all mined transactions.
-func (bc *Blockchain) RebuildLedger() {
-	newLedger := ledger.NewLedger()
-
-	newLedger.AddAccount("Alice", 100)
-	newLedger.AddAccount("Bob", 50)
-	newLedger.AddAccount("Charlie", 75)
-
-	for blockIndex, block := range bc.Blocks {
-		// Skip the genesis block.
-		if blockIndex == 0 {
-			continue
-		}
-
-		for _, tx := range block.Transactions {
-			newLedger.ApplyTransaction(tx)
-		}
+func newCandidateBlock(previous Block, transactions []ledger.Transaction) Block {
+	timestamp := time.Now().Unix()
+	if timestamp < previous.Timestamp {
+		timestamp = previous.Timestamp
 	}
-
-	bc.Ledger = newLedger
+	return Block{
+		Index:        previous.Index + 1,
+		Timestamp:    timestamp,
+		Transactions: append([]ledger.Transaction(nil), transactions...),
+		PreviousHash: previous.Hash,
+		Difficulty:   DefaultDifficulty,
+	}
 }

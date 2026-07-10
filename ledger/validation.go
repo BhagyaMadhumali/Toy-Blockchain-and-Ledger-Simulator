@@ -1,50 +1,29 @@
 package ledger
 
-import "errors"
+import "fmt"
 
-// ValidateTransaction validates a transaction
-// using the current ledger balance.
-func ValidateTransaction(
-	l *Ledger,
-	tx Transaction,
-) error {
-	currentBalance := l.GetBalance(tx.Sender)
-
-	return ValidateTransactionWithBalance(
-		tx,
-		currentBalance,
-	)
+func ValidateTransaction(l *Ledger, tx Transaction) error {
+	return ValidateTransactionWithBalance(tx, l.GetBalance(tx.Sender))
 }
 
-// ValidateTransactionWithBalance validates a transaction
-// using the available balance provided by the blockchain.
-func ValidateTransactionWithBalance(
-	tx Transaction,
-	availableBalance int,
-) error {
+func ValidateTransactionWithBalance(tx Transaction, availableBalance int) error {
 	if tx.Sender == "" || tx.Receiver == "" {
-		return errors.New(
-			"sender and receiver are required",
-		)
+		return fmt.Errorf("sender and receiver are required")
 	}
-
+	if tx.Sender == SystemAccount {
+		return fmt.Errorf("SYSTEM transactions are allowed only in the genesis block")
+	}
+	if tx.Receiver == SystemAccount {
+		return fmt.Errorf("SYSTEM cannot receive normal transactions")
+	}
 	if tx.Sender == tx.Receiver {
-		return errors.New(
-			"sender and receiver cannot be the same",
-		)
+		return fmt.Errorf("sender and receiver cannot be the same")
 	}
-
 	if tx.Amount <= 0 {
-		return errors.New(
-			"amount must be greater than zero",
-		)
+		return fmt.Errorf("amount must be greater than zero")
 	}
-
 	if availableBalance < tx.Amount {
-		return errors.New(
-			"insufficient available balance",
-		)
+		return fmt.Errorf("insufficient available balance: have %d, need %d", availableBalance, tx.Amount)
 	}
-
 	return nil
 }

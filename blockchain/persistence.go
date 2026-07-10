@@ -2,76 +2,67 @@ package blockchain
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"toy-blockchain/ledger"
 )
 
-// SaveBlockchain saves the blockchain as formatted JSON.
-func (bc *Blockchain) SaveBlockchain(filename string) error {
-	directory := filepath.Dir(filename)
-
-	if err := os.MkdirAll(
-		directory,
-		os.ModePerm,
-	); err != nil {
-		return err
-	}
-
-	data, err := json.MarshalIndent(
-		bc,
-		"",
-		"  ",
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(
-		filename,
-		data,
-		0644,
-	)
+type persistedBlockchain struct {
+	Blocks              []Block              `json:"blocks"`
+	PendingTransactions []ledger.Transaction `json:"pending_transactions"`
 }
 
-// LoadBlockchain loads blockchain data from a JSON file.
-//
-// If the file does not exist, a new blockchain is created.
+func (bc *Blockchain) SaveBlockchain(filename string) error {
+	if err := bc.ValidateBlockchain(); err != nil {
+		return fmt.Errorf("refusing to save invalid blockchain: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+		return err
+	}
+	state := persistedBlockchain{Blocks: bc.Blocks, PendingTransactions: bc.PendingTransactions}
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, data, 0644)
+}
+
 func LoadBlockchain(filename string) (*Blockchain, error) {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
+	data, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
 		return NewBlockchain(), nil
 	}
-
-	data, err := os.ReadFile(filename)
-
 	if err != nil {
 		return nil, err
 	}
 
-	var bc Blockchain
-
-	if err := json.Unmarshal(
-		data,
-		&bc,
-	); err != nil {
+	var state persistedBlockchain
+	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, err
 	}
-
-	// Rebuild the ledger if it was missing from the file.
-	if bc.Ledger == nil || bc.Ledger.Balances == nil {
-		bc.RebuildLedger()
+	bc := &Blockchain{
+		Blocks:              state.Blocks,
+		PendingTransactions: state.PendingTransactions,
+		Ledger:              ledger.NewLedger(),
 	}
-
-	// Prevent a nil pending transaction slice.
 	if bc.PendingTransactions == nil {
 		bc.PendingTransactions = []ledger.Transaction{}
 	}
-
-	// Use the default difficulty if no difficulty was saved.
-	if bc.Difficulty == 0 {
-		bc.Difficulty = DefaultDifficulty
+	if err := bc.ValidateBlockchain(); err != nil {
+		return nil, fmt.Errorf("saved blockchain is invalid: %w", err)
+	}
+	if err := bc.RebuildLedger(); err != nil {
+		return nil, err
 	}
 
-	return &bc, nil
+	// Also validate pending transactions sequentially so edited persisted data
+	// cannot be mined later.
+	temporary := bc.Ledger.Clone()
+	for i, tx := range bc.PendingTransactions {
+		if err := temporary.ApplyTransaction(tx); err != nil {
+			return nil, fmt.Errorf("saved pending transaction %d is invalid: %w", i, err)
+		}
+	}
+	return bc, nil
 }

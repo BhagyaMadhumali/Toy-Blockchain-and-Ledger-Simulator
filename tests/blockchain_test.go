@@ -6,71 +6,46 @@ import (
 	"toy-blockchain/ledger"
 )
 
-func TestGenesisBlockCreated(t *testing.T) {
-	bc := blockchain.NewBlockchain()
-
-	if len(bc.Blocks) != 1 {
-		t.Errorf(
-			"expected blockchain to start with one genesis block",
-		)
-	}
-
-	if bc.Blocks[0].Index != 0 {
-		t.Errorf(
-			"expected genesis block index to be 0",
-		)
+func TestGenesisIsDeterministic(t *testing.T) {
+	if blockchain.NewGenesisBlock().Hash != blockchain.NewGenesisBlock().Hash {
+		t.Fatal("genesis block must be deterministic")
 	}
 }
 
-func TestAddTransaction(t *testing.T) {
+func TestBalancesAreReplayedFromChain(t *testing.T) {
 	bc := blockchain.NewBlockchain()
-
-	tx := ledger.Transaction{
-		Sender:   "Alice",
-		Receiver: "Bob",
-		Amount:   20,
+	if bc.Ledger.GetBalance("Alice") != 100 || bc.Ledger.GetBalance("Bob") != 50 || bc.Ledger.GetBalance("Charlie") != 75 {
+		t.Fatal("genesis allocations were not replayed")
 	}
-
-	if err := bc.AddTransaction(tx); err != nil {
-		t.Errorf(
-			"expected valid transaction, got error: %v",
-			err,
-		)
+	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 20}); err != nil {
+		t.Fatal(err)
 	}
-
-	if len(bc.PendingTransactions) != 1 {
-		t.Errorf(
-			"expected one pending transaction",
-		)
+	if _, err := bc.MinePendingTransactions(); err != nil {
+		t.Fatal(err)
+	}
+	bc.Ledger.Balances["Alice"] = 999999
+	if err := bc.RebuildLedger(); err != nil {
+		t.Fatal(err)
+	}
+	if bc.Ledger.GetBalance("Alice") != 80 {
+		t.Fatalf("expected replayed balance 80, got %d", bc.Ledger.GetBalance("Alice"))
 	}
 }
 
-func TestBlockchainValidationAfterMining(t *testing.T) {
+func TestPendingPoolDoubleSpend(t *testing.T) {
 	bc := blockchain.NewBlockchain()
-
-	tx := ledger.Transaction{
-		Sender:   "Alice",
-		Receiver: "Bob",
-		Amount:   20,
+	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 80}); err != nil {
+		t.Fatal(err)
 	}
-
-	if err := bc.AddTransaction(tx); err != nil {
-		t.Fatalf(
-			"failed to add transaction: %v",
-			err,
-		)
+	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Charlie", Amount: 30}); err == nil {
+		t.Fatal("expected second pending transaction to be rejected")
 	}
+}
 
-	if err := bc.MinePendingTransactions(); err != nil {
-		t.Fatalf(
-			"failed to mine transactions: %v",
-			err,
-		)
-	}
-
-	if !bc.ValidateBlockchain() {
-		t.Errorf(
-			"expected blockchain to be valid",
-		)
+func TestMineRevalidatesInjectedPendingTransaction(t *testing.T) {
+	bc := blockchain.NewBlockchain()
+	bc.PendingTransactions = append(bc.PendingTransactions, ledger.Transaction{Sender: "Bob", Receiver: "Alice", Amount: 5000})
+	if _, err := bc.MinePendingTransactions(); err == nil {
+		t.Fatal("expected mining to reject injected overspending transaction")
 	}
 }

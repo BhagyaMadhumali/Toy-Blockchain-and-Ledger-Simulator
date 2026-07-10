@@ -1,57 +1,20 @@
 package tests
 
 import (
-	"strings"
 	"testing"
 	"toy-blockchain/blockchain"
 )
 
-func TestMiningCreatesValidHash(t *testing.T) {
-	block := blockchain.Block{
-		Index:        1,
-		Timestamp:    1000,
-		PreviousHash: "abc",
-		Nonce:        0,
+func TestMiningCreatesValidProof(t *testing.T) {
+	block := blockchain.Block{Index: 1, Timestamp: 1000, PreviousHash: "abc"}
+	result, err := blockchain.MineBlock(&block, 2)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	difficulty := 2
-
-	blockchain.MineBlock(
-		&block,
-		difficulty,
-	)
-
-	requiredPrefix := strings.Repeat(
-		"0",
-		difficulty,
-	)
-
-	if !strings.HasPrefix(
-		block.Hash,
-		requiredPrefix,
-	) {
-		t.Errorf(
-			"mined hash does not match difficulty",
-		)
+	if result.Attempts == 0 || !blockchain.HasValidProof(block.Hash, 2) {
+		t.Fatal("invalid mining result")
 	}
-}
-
-func TestMiningChangesNonce(t *testing.T) {
-	block := blockchain.Block{
-		Index:        1,
-		Timestamp:    1000,
-		PreviousHash: "abc",
-		Nonce:        0,
-	}
-
-	blockchain.MineBlock(
-		&block,
-		2,
-	)
-
-	if block.Nonce == 0 {
-		t.Errorf(
-			"expected nonce to change during mining",
-		)
+	if result.Attempts != block.Nonce+1 {
+		t.Fatal("attempt count should equal nonce plus one")
 	}
 }

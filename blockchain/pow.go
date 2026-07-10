@@ -1,44 +1,40 @@
 package blockchain
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
-// isValidHash checks whether a hash satisfies
-// the blockchain difficulty.
-func (bc *Blockchain) isValidHash(hash string) bool {
-	requiredPrefix := strings.Repeat(
-		"0",
-		bc.Difficulty,
-	)
-
-	return strings.HasPrefix(
-		hash,
-		requiredPrefix,
-	)
+type MiningResult struct {
+	Attempts uint64
+	Elapsed  time.Duration
 }
 
-// MineBlock repeatedly changes the nonce until
-// the block hash begins with the required zeroes.
-//
-// It returns the total number of hash attempts.
-func MineBlock(block *Block, difficulty int) int {
-	requiredPrefix := strings.Repeat(
-		"0",
-		difficulty,
-	)
+func HasValidProof(hash string, difficulty int) bool {
+	if difficulty < 1 || difficulty > 64 {
+		return false
+	}
+	return strings.HasPrefix(hash, strings.Repeat("0", difficulty))
+}
 
-	attempts := 0
+// MineBlock increments the nonce until the block satisfies proof-of-work.
+func MineBlock(block *Block, difficulty int) (MiningResult, error) {
+	if difficulty < 1 || difficulty > 6 {
+		return MiningResult{}, fmt.Errorf("difficulty must be between 1 and 6")
+	}
+
+	block.Difficulty = difficulty
+	block.Nonce = 0
+	start := time.Now()
+	var attempts uint64
 
 	for {
 		block.Hash = CalculateHash(*block)
 		attempts++
-
-		if strings.HasPrefix(
-			block.Hash,
-			requiredPrefix,
-		) {
-			return attempts
+		if HasValidProof(block.Hash, difficulty) {
+			return MiningResult{Attempts: attempts, Elapsed: time.Since(start)}, nil
 		}
-
 		block.Nonce++
 	}
 }
