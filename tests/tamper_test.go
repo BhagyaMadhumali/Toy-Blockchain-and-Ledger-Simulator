@@ -4,13 +4,12 @@ import (
 	"strings"
 	"testing"
 	"toy-blockchain/blockchain"
-	"toy-blockchain/ledger"
 )
 
 func minedChain(t *testing.T) *blockchain.Blockchain {
 	t.Helper()
 	bc := blockchain.NewBlockchain()
-	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 20}); err != nil {
+	if err := bc.AddTransaction(signedTransaction(t, "Alice", "Bob", 20)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := bc.MinePendingTransactions(); err != nil {
@@ -22,8 +21,8 @@ func minedChain(t *testing.T) *blockchain.Blockchain {
 func TestHashIntegrityTampering(t *testing.T) {
 	bc := minedChain(t)
 	bc.Blocks[1].Transactions[0].Amount = 999
-	if err := bc.ValidateBlockchain(); err == nil || !strings.Contains(err.Error(), "stored hash") {
-		t.Fatalf("expected hash error, got %v", err)
+	if err := bc.ValidateBlockchain(); err == nil || !strings.Contains(err.Error(), "Merkle root") {
+		t.Fatalf("expected Merkle root error, got %v", err)
 	}
 }
 
@@ -44,7 +43,7 @@ func TestProofOfWorkBranch(t *testing.T) {
 	for nonce := uint64(0); ; nonce++ {
 		block.Nonce = nonce
 		block.Hash = blockchain.CalculateHash(*block)
-		if !blockchain.HasValidProof(block.Hash, blockchain.DefaultDifficulty) {
+		if !blockchain.HasValidProof(block.Hash, block.Difficulty) {
 			break
 		}
 	}
@@ -78,14 +77,14 @@ func TestTrustedDifficultyValidation(t *testing.T) {
 	if _, err := blockchain.MineBlock(&bc.Blocks[1], 1); err != nil {
 		t.Fatal(err)
 	}
-	if err := bc.ValidateBlockchain(); err == nil || !strings.Contains(err.Error(), "untrusted difficulty") {
+	if err := bc.ValidateBlockchain(); err == nil || !strings.Contains(err.Error(), "retargeted difficulty") {
 		t.Fatalf("expected difficulty error, got %v", err)
 	}
 }
 
 func TestNegativeBalanceReplayDetection(t *testing.T) {
 	bc := minedChain(t)
-	bc.Blocks[1].Transactions[0].Amount = 5000
+	bc.Blocks[1].Transactions[0] = signedTransaction(t, "Alice", "Bob", 5000)
 	if _, err := blockchain.MineBlock(&bc.Blocks[1], blockchain.DefaultDifficulty); err != nil {
 		t.Fatal(err)
 	}

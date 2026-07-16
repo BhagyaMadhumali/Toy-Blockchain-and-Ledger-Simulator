@@ -19,6 +19,14 @@ func main() {
 	}
 
 	command := os.Args[1]
+
+	// Reset must be handled before loading and validating saved data.
+	// This allows incompatible data from an older block format to be removed.
+	if command == "reset" {
+		resetCommand()
+		return
+	}
+
 	if command == "benchmark" {
 		benchmarkCommand(os.Args[2:])
 		return
@@ -41,12 +49,14 @@ func main() {
 		bc.PrintPendingTransactions()
 	case "validate":
 		validateCommand(bc)
+	case "resolve":
+		resolveForkCommand(bc, os.Args[2:])
+	case "export":
+		exportCommand(bc, os.Args[2:])
 	case "balance":
 		if err := bc.PrintBalances(); err != nil {
 			fmt.Println("Cannot calculate balances:", err)
 		}
-	case "reset":
-		resetCommand()
 	case "help":
 		printHelp()
 	default:
@@ -66,6 +76,15 @@ func addTransactionCommand(bc *blockchain.Blockchain, args []string) {
 		return
 	}
 	tx := ledger.Transaction{Sender: args[0], Receiver: args[1], Amount: amount}
+	privateKey, err := ledger.DemoAccountPrivateKey(tx.Sender)
+	if err != nil {
+		fmt.Println("Cannot sign transaction:", err)
+		return
+	}
+	if err := ledger.SignTransaction(&tx, privateKey); err != nil {
+		fmt.Println("Cannot sign transaction:", err)
+		return
+	}
 	if err := bc.AddTransaction(tx); err != nil {
 		fmt.Println("Transaction rejected:", err)
 		return
@@ -74,7 +93,8 @@ func addTransactionCommand(bc *blockchain.Blockchain, args []string) {
 		fmt.Println("Error saving blockchain:", err)
 		return
 	}
-	fmt.Println("Transaction added successfully.")
+	fmt.Println("Transaction signed and added successfully.")
+	fmt.Println("Signer key fingerprint:", tx.PublicKeyFingerprint())
 }
 
 func mineCommand(bc *blockchain.Blockchain) {
@@ -91,6 +111,7 @@ func mineCommand(bc *blockchain.Blockchain) {
 	fmt.Println("Block mined successfully.")
 	fmt.Printf("Difficulty: %d\n", block.Difficulty)
 	fmt.Printf("Nonce: %d\n", block.Nonce)
+	fmt.Printf("Workers: %d\n", result.Workers)
 	fmt.Printf("Hashes attempted: %d\n", result.Attempts)
 	fmt.Printf("Elapsed time: %s\n", result.Elapsed)
 	fmt.Printf("Hash: %s\n", block.Hash)
@@ -102,6 +123,54 @@ func validateCommand(bc *blockchain.Blockchain) {
 		return
 	}
 	fmt.Println("Blockchain is valid.")
+}
+
+func resolveForkCommand(bc *blockchain.Blockchain, args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: go run ./cmd resolve <candidate-blockchain.json>")
+		return
+	}
+
+	candidate, err := blockchain.LoadCandidateBlocks(args[0])
+	if err != nil {
+		fmt.Println("Cannot load candidate blockchain:", err)
+		return
+	}
+
+	result, err := bc.ResolveFork(candidate)
+	if err != nil {
+		fmt.Println("Fork resolution failed:", err)
+		return
+	}
+
+	if !result.Replaced {
+		fmt.Printf("Local chain kept. Local length: %d, candidate length: %d.\n", result.OldLength, result.CandidateLength)
+		return
+	}
+
+	if err := bc.SaveBlockchain(dataFile); err != nil {
+		fmt.Println("Fork was resolved but the winning chain could not be saved:", err)
+		return
+	}
+
+	fmt.Println("Competing chain accepted by the longest-valid-chain rule.")
+	fmt.Printf("Old local length: %d\n", result.OldLength)
+	fmt.Printf("Winning chain length: %d\n", result.CandidateLength)
+	fmt.Printf("Common ancestor block: %d\n", result.CommonAncestorIndex)
+	fmt.Printf("Transactions returned to pending: %d\n", result.Requeued)
+	fmt.Printf("Duplicate or invalid transactions discarded: %d\n", result.Discarded)
+}
+
+func exportCommand(bc *blockchain.Blockchain, args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: go run ./cmd export <output-file.json>")
+		return
+	}
+	if err := bc.ExportBlockchain(args[0]); err != nil {
+		fmt.Println("Export failed:", err)
+		return
+	}
+	fmt.Println("Blockchain exported to", args[0])
 }
 
 // benchmark mines independent sample blocks and does not modify the real chain.
@@ -118,7 +187,7 @@ func benchmarkCommand(args []string) {
 		return
 	}
 
-	fmt.Println("difficulty,run,nonce,attempts,elapsed_ms,hash")
+	fmt.Println("difficulty,run,workers,nonce,attempts,elapsed_ms,hash")
 	for difficulty := *minDifficulty; difficulty <= *maxDifficulty; difficulty++ {
 		for run := 1; run <= *runs; run++ {
 			block := blockchain.Block{
@@ -132,7 +201,7 @@ func benchmarkCommand(args []string) {
 				fmt.Println("Benchmark failed:", err)
 				return
 			}
-			fmt.Printf("%d,%d,%d,%d,%.3f,%s\n", difficulty, run, block.Nonce, result.Attempts, float64(result.Elapsed.Microseconds())/1000, block.Hash)
+			fmt.Printf("%d,%d,%d,%d,%d,%.3f,%s\n", difficulty, run, result.Workers, block.Nonce, result.Attempts, float64(result.Elapsed.Microseconds())/1000, block.Hash)
 		}
 	}
 }
@@ -152,6 +221,8 @@ func printHelp() {
 	fmt.Println("  go run ./cmd print")
 	fmt.Println("  go run ./cmd pending")
 	fmt.Println("  go run ./cmd validate")
+	fmt.Println("  go run ./cmd resolve <candidate-blockchain.json>")
+	fmt.Println("  go run ./cmd export <output-file.json>")
 	fmt.Println("  go run ./cmd balance")
 	fmt.Println("  go run ./cmd benchmark --min 1 --max 5 --runs 3")
 	fmt.Println("  go run ./cmd reset")

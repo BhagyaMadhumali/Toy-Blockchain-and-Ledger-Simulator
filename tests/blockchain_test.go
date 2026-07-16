@@ -3,7 +3,6 @@ package tests
 import (
 	"testing"
 	"toy-blockchain/blockchain"
-	"toy-blockchain/ledger"
 )
 
 func TestGenesisIsDeterministic(t *testing.T) {
@@ -17,7 +16,7 @@ func TestBalancesAreReplayedFromChain(t *testing.T) {
 	if bc.Ledger.GetBalance("Alice") != 100 || bc.Ledger.GetBalance("Bob") != 50 || bc.Ledger.GetBalance("Charlie") != 75 {
 		t.Fatal("genesis allocations were not replayed")
 	}
-	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 20}); err != nil {
+	if err := bc.AddTransaction(signedTransaction(t, "Alice", "Bob", 20)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := bc.MinePendingTransactions(); err != nil {
@@ -34,17 +33,17 @@ func TestBalancesAreReplayedFromChain(t *testing.T) {
 
 func TestPendingPoolDoubleSpend(t *testing.T) {
 	bc := blockchain.NewBlockchain()
-	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 80}); err != nil {
+	if err := bc.AddTransaction(signedTransaction(t, "Alice", "Bob", 80)); err != nil {
 		t.Fatal(err)
 	}
-	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Charlie", Amount: 30}); err == nil {
+	if err := bc.AddTransaction(signedTransaction(t, "Alice", "Charlie", 30)); err == nil {
 		t.Fatal("expected second pending transaction to be rejected")
 	}
 }
 
 func TestMineRevalidatesInjectedPendingTransaction(t *testing.T) {
 	bc := blockchain.NewBlockchain()
-	bc.PendingTransactions = append(bc.PendingTransactions, ledger.Transaction{Sender: "Bob", Receiver: "Alice", Amount: 5000})
+	bc.PendingTransactions = append(bc.PendingTransactions, signedTransaction(t, "Bob", "Alice", 5000))
 	if _, err := bc.MinePendingTransactions(); err == nil {
 		t.Fatal("expected mining to reject injected overspending transaction")
 	}

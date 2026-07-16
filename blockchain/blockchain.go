@@ -47,7 +47,7 @@ func NewGenesisBlock() Block {
 		PreviousHash: GenesisPreviousHash,
 		Difficulty:   DefaultDifficulty,
 	}
-	if _, err := MineBlock(&block, DefaultDifficulty); err != nil {
+	if _, err := MineBlockWithWorkers(&block, DefaultDifficulty, 1); err != nil {
 		panic(err)
 	}
 	return block
@@ -87,12 +87,17 @@ func (bc *Blockchain) PrintChain() {
 		fmt.Println("Index:", block.Index)
 		fmt.Println("Timestamp:", block.Timestamp)
 		fmt.Println("Previous Hash:", block.PreviousHash)
+		fmt.Println("Merkle Root:", block.MerkleRoot)
 		fmt.Println("Difficulty:", block.Difficulty)
 		fmt.Println("Nonce:", block.Nonce)
 		fmt.Println("Hash:", block.Hash)
 		fmt.Println("Transactions:")
 		for _, tx := range block.Transactions {
-			fmt.Printf("  %s -> %s : %d\n", tx.Sender, tx.Receiver, tx.Amount)
+			if tx.Sender == ledger.SystemAccount {
+				fmt.Printf("  %s -> %s : %d (trusted genesis allocation)\n", tx.Sender, tx.Receiver, tx.Amount)
+			} else {
+				fmt.Printf("  %s -> %s : %d (signed by %s)\n", tx.Sender, tx.Receiver, tx.Amount, tx.PublicKeyFingerprint())
+			}
 		}
 	}
 }
@@ -103,7 +108,7 @@ func (bc *Blockchain) PrintPendingTransactions() {
 		return
 	}
 	for i, tx := range bc.PendingTransactions {
-		fmt.Printf("%d. %s -> %s : %d\n", i+1, tx.Sender, tx.Receiver, tx.Amount)
+		fmt.Printf("%d. %s -> %s : %d (signed by %s)\n", i+1, tx.Sender, tx.Receiver, tx.Amount, tx.PublicKeyFingerprint())
 	}
 }
 
@@ -123,7 +128,7 @@ func (bc *Blockchain) PrintBalances() error {
 	return nil
 }
 
-func newCandidateBlock(previous Block, transactions []ledger.Transaction) Block {
+func newCandidateBlock(previous Block, transactions []ledger.Transaction, difficulty int) Block {
 	timestamp := time.Now().Unix()
 	if timestamp < previous.Timestamp {
 		timestamp = previous.Timestamp
@@ -133,6 +138,6 @@ func newCandidateBlock(previous Block, transactions []ledger.Transaction) Block 
 		Timestamp:    timestamp,
 		Transactions: append([]ledger.Transaction(nil), transactions...),
 		PreviousHash: previous.Hash,
-		Difficulty:   DefaultDifficulty,
+		Difficulty:   difficulty,
 	}
 }

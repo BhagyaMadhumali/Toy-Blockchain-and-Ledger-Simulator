@@ -22,6 +22,12 @@ func ValidateTransactionWithBalance(tx Transaction, availableBalance int) error 
 	if tx.Amount <= 0 {
 		return fmt.Errorf("amount must be greater than zero")
 	}
+	if err := tx.VerifySignature(); err != nil {
+		return err
+	}
+	if err := VerifySenderIdentity(tx); err != nil {
+		return err
+	}
 	if availableBalance < tx.Amount {
 		return fmt.Errorf("insufficient available balance: have %d, need %d", availableBalance, tx.Amount)
 	}

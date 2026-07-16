@@ -53,14 +53,22 @@ func ReplayBlocks(blocks []Block) (*ledger.Ledger, error) {
 		if block.Index != i {
 			return nil, validationError(i, fmt.Sprintf("incorrect index %d; expected %d", block.Index, i))
 		}
-		if block.Difficulty != DefaultDifficulty {
-			return nil, validationError(i, fmt.Sprintf("untrusted difficulty %d; expected %d", block.Difficulty, DefaultDifficulty))
+		expectedDifficulty := DefaultDifficulty
+		if i > 0 {
+			expectedDifficulty = CalculateNextDifficulty(blocks[:i])
+		}
+		if block.Difficulty != expectedDifficulty {
+			return nil, validationError(i, fmt.Sprintf("incorrect retargeted difficulty %d; expected %d", block.Difficulty, expectedDifficulty))
+		}
+		expectedMerkleRoot := CalculateMerkleRoot(block.Transactions)
+		if block.MerkleRoot != expectedMerkleRoot {
+			return nil, validationError(i, "stored Merkle root does not match transactions")
 		}
 		if block.Hash != CalculateHash(block) {
 			return nil, validationError(i, "stored hash does not match block contents")
 		}
-		if !HasValidProof(block.Hash, DefaultDifficulty) {
-			return nil, validationError(i, "proof-of-work does not satisfy trusted difficulty")
+		if !HasValidProof(block.Hash, block.Difficulty) {
+			return nil, validationError(i, "proof-of-work does not satisfy block difficulty")
 		}
 
 		if i == 0 {

@@ -6,13 +6,12 @@ import (
 	"strings"
 	"testing"
 	"toy-blockchain/blockchain"
-	"toy-blockchain/ledger"
 )
 
 func TestPersistenceRebuildsLedgerAndDoesNotSaveBalances(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "blockchain.json")
 	bc := blockchain.NewBlockchain()
-	if err := bc.AddTransaction(ledger.Transaction{Sender: "Alice", Receiver: "Bob", Amount: 15}); err != nil {
+	if err := bc.AddTransaction(signedTransaction(t, "Alice", "Bob", 15)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := bc.MinePendingTransactions(); err != nil {

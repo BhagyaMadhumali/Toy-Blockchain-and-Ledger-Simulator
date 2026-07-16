@@ -66,3 +66,28 @@ func LoadBlockchain(filename string) (*Blockchain, error) {
 	}
 	return bc, nil
 }
+
+// LoadCandidateBlocks reads a competing chain from a normal blockchain JSON
+// file. Pending transactions in that file are intentionally ignored because
+// fork choice compares confirmed blocks only.
+func LoadCandidateBlocks(filename string) ([]Block, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var state persistedBlockchain
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, fmt.Errorf("decode candidate blockchain: %w", err)
+	}
+	if len(state.Blocks) == 0 {
+		return nil, fmt.Errorf("candidate blockchain contains no blocks")
+	}
+	return cloneBlocks(state.Blocks), nil
+}
+
+// ExportBlockchain writes a complete snapshot that another node can use as a
+// competing-chain candidate.
+func (bc *Blockchain) ExportBlockchain(filename string) error {
+	return bc.SaveBlockchain(filename)
+}

@@ -23,8 +23,9 @@ func (bc *Blockchain) MinePendingTransactions() (MiningResult, error) {
 		}
 	}
 
-	newBlock := newCandidateBlock(bc.Blocks[len(bc.Blocks)-1], transactions)
-	result, err := MineBlock(&newBlock, DefaultDifficulty)
+	difficulty := CalculateNextDifficulty(bc.Blocks)
+	newBlock := newCandidateBlock(bc.Blocks[len(bc.Blocks)-1], transactions, difficulty)
+	result, err := MineBlock(&newBlock, difficulty)
 	if err != nil {
 		return MiningResult{}, err
 	}
